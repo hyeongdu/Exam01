@@ -65,6 +65,7 @@ class Receiver extends Thread
 			catch (Exception e)
 			{
 				System.out.println("예외2 : " + e);
+				System.out.println("예외" + e);
 				break;
 			}
 			
