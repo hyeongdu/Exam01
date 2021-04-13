@@ -3,6 +3,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -19,7 +20,7 @@ public class PjchatServer
 	Map<String, PrintWriter> room1;
 	
 	//채팅 금지어
-	List<String> list = new ArrayList<>();
+	List<String> list1 = new ArrayList<>();
 	
 	//공지 목록
 	List<String> list2 = new ArrayList<>();
@@ -134,16 +135,26 @@ public class PjchatServer
 						case "2":
 							out.println(s + "번을 누르셨습니다 회원가입.");
 							joinchat();
-							start = false;
+							start = true;
 							break;
 						}
 						
 						
 					}
 					start = true;
+					//printwriter
 					room1.put(name, out);
+					
+					//로그인 회원DB
 					pjsql.welcome(name);
-					System.out.println("대기방 인원 : " + room1.size());
+					
+					//금지어 목록 받기
+					wordlist();
+					
+					//공지사항 목록 받기
+					noticelist();
+					
+					System.out.println("현재 접속자 수 : " + room1.size());
 					room1Msg(name +"님이 대기방에 입장하셨습니다", "");
 					out.println("/명령어 를 입력하시면 명령어를 보실 수 있습니다. ");
 					if(!list2.isEmpty())
@@ -230,7 +241,7 @@ public class PjchatServer
 								{
 									out.println(delblack(name, st.nextToken()));
 								}
-								else if (stz.equals("/공지"))
+								else if (stz.equals("/공지추가"))
 								{
 									String stz3 = "";
 									while(st.hasMoreTokens())
@@ -238,7 +249,11 @@ public class PjchatServer
 										stz3 += st.nextToken() + " ";
 									}
 									list2.add(stz3);
-									chatAllMsg(stz3);
+									pjsql.addnotice(stz3);
+								}
+								else if (stz.equals("/공지게시"))
+								{
+									chatAllMsg();
 								}
 								else if (stz.equals("/위치"))
 								{
@@ -254,9 +269,9 @@ public class PjchatServer
 								else if(stz.equals("/종료"))
 								{
 									
-									room1Msg("", name);
+									room1Msg(name + "님 서버 종료", name);
 									pjsql.end(name);
-									out.println("종료합니다.");
+								
 								
 								}
 								else if(stz.equals("/강퇴"))
@@ -277,13 +292,26 @@ public class PjchatServer
 								{
 									String stz3 = st.nextToken();
 									String result = pjsql.bomb(stz3);
-									chatAllMsg(result);
+								
 								}
-								else if(stz.equals("/금지어"))
+								else if(stz.equals("/금지어추가"))
 								{
 									String stz2 = st.nextToken();
-									list.add(stz2);
-									out.println("금지어가 추가되었습니다.");
+									list1.add(stz2);
+									out.println(pjsql.banword(name, stz2));
+									
+								}
+								else if(stz.equals("/금지어제거"))
+								{
+									String stz2 = st.nextToken();
+									list1.remove(stz2);
+									out.println(pjsql.removeword(name, stz2));
+								}
+								
+								else if(stz.equals("/금지어목록"))
+								{
+									for(String e : list1)
+										out.println(e);
 								}
 								else 
 								{
@@ -292,7 +320,7 @@ public class PjchatServer
 							}
 							else
 							{
-								for(String e : list)
+								for(String e : list1)
 								{
 									s= s.replace(e, "천사");
 								}	
@@ -398,16 +426,12 @@ public class PjchatServer
 					System.out.println("회원가입 오류" + e);
 				}
 		}
-//		public void exit()
-//		{
-//			pjsql.exitDb(name);
-//			out.println("대기방으로 이동");
-//		}
-		public void chatAllMsg(String msg)
+
+		public void chatAllMsg()
 		{
 			if(pjsql.npccheck(name) == true)
 			{
-				String notice = "                                       *알  림* ";
+				String notice = "                                       *공지사항* ";
 				String space = "                               ";
 				Iterator it2 = room1.keySet().iterator();
 				
@@ -419,7 +443,8 @@ public class PjchatServer
 						PrintWriter it_out = (PrintWriter)room1.get(it2.next());
 						
 							it_out.println(notice);
-							it_out.println(space + msg);
+							for(String e : list2)
+								it_out.println(space + e);
 						
 					}catch(Exception e)
 					{
@@ -465,9 +490,7 @@ public class PjchatServer
 				while(iter.hasNext())
 				{
 					PrintWriter it_out = (PrintWriter)room1.get(iter.next());
-					if(msg.equals(""))
-						it_out.println("                                   " + name +"님 서버 종료");
-					else
+					
 						it_out.println(name +">"+ msg);
 				}
 			}catch(Exception e)
@@ -482,7 +505,7 @@ public class PjchatServer
 		public void list(String name)
 		{
 			
-			Iterator<String> it = pjsql.listcheck(name).iterator();
+			Iterator<String> it = pjsql.sendAllchat(name).iterator();
 			String msg = "현재 방 멤버 리스트 [";
 			while(it.hasNext())
 			{
@@ -585,6 +608,16 @@ public class PjchatServer
 				}
 				
 		
+		}
+		
+		public void wordlist()
+		{
+				list1 = pjsql.wordlist();
+		}
+		
+		public void noticelist()
+		{
+			list2 = pjsql.noticelist();
 		}
 		public String npc(String password,String name)
 		{

@@ -3,6 +3,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.ArrayList;
 import java.util.Map;
@@ -62,6 +63,11 @@ public class ProjectChat
 	PreparedStatement pstmt24= null;
 	PreparedStatement pstmt25= null;
 	PreparedStatement pstmt26= null;
+	PreparedStatement pstmt27= null;
+	PreparedStatement pstmt28 = null;
+	PreparedStatement pstmt29= null;
+	PreparedStatement pstmt30= null;
+	PreparedStatement pstmt31= null;
 	ResultSet rs ;
 	int updateCount ;
 	String sql = null;
@@ -196,6 +202,7 @@ public class ProjectChat
 	{
 		String check1 ="1111";
 		String check2 ="2222";
+		String result = "";
 		connectDatabase();
 		sql = "select * from room1 where name = ?";
 		try
@@ -203,12 +210,17 @@ public class ProjectChat
 			pstmt24 = con.prepareStatement(sql);
 			pstmt24.setString(1, name);
 			rs = pstmt24.executeQuery();
-			while(rs.next())
+			if(rs.next())
 			{
 				check1 = rs.getString("name");
 				 check2 = rs.getString("roomname");
-				
+				 result = check1 + " 님은  " + check2  + " 방에 있습니다";
 			}
+			else
+			{
+				result = "로그아웃 상태입니다. ";
+			}
+			
 			
 		}catch(Exception e)
 		{
@@ -221,7 +233,7 @@ public class ProjectChat
 		{
 		
 		}
-		return check1 + "  님은  " + check2  + "  방에 있습니다";
+		return result;
 	}
 
 	//메세지 보내기
@@ -230,13 +242,12 @@ public class ProjectChat
 		connectDatabase();
 		ArrayList<String> arr = new ArrayList<>();
 		sql = "select name from room1  "
-				+ " where name != ? and roomname = (select roomname from room1 where name = ?) ";
+				+ " where  roomname = (select roomname from room1 where name = ?) ";
 		
 		try
 		{	
 			pstmt6 = con.prepareStatement(sql);
 			pstmt6.setString(1, name);
-			pstmt6.setString(2, name);
 			rs = pstmt6.executeQuery();
 			while(rs.next())
 			{
@@ -250,6 +261,7 @@ public class ProjectChat
 		}
 		return arr;
 	}
+
 	public String enterroom(String name,String roomname, String password)
 	{
 		connectDatabase();
@@ -584,34 +596,158 @@ public class ProjectChat
 		}catch(Exception e)
 		{}
 		return result;
+		
+		
 	}
 
 	
-		
-	public ArrayList<String> listcheck(String name)
+	public String banword(String name,String banword)
+
 	{
+		String result = "";
 		connectDatabase();
-		ArrayList<String> arr = new ArrayList<>();
-		sql = "select name from room1  "
-				+ " where roomname = (select roomname from room1 where name = ?) ";
-		
-		try
-		{	
-			pstmt25 = con.prepareStatement(sql);
-			pstmt25.setString(1, name);
-			rs = pstmt25.executeQuery();
-			while(rs.next())
+		sql = "select * from chatinfo where npc = ?";
+		try 
+		{
+			pstmt26 = con.prepareStatement(sql);
+			pstmt26.setString(1, name);
+			rs = pstmt26.executeQuery();
+			if(rs.next())
 			{
-				arr.add(rs.getString("name"));
+				sql = " insert into wordlist values (?)";
+				pstmt27 = con.prepareStatement(sql);
+				pstmt27.setString(1, banword);
+				pstmt27.executeUpdate();
+				
+				result =  "금지어가 등록되었습니다.";
 			}
+			else
+			{
+				result =   "관리자 권한입니다. ";
+			}
+		}catch(SQLIntegrityConstraintViolationException e)
+		{
+			result = "이미 등록된 금지어입니다. ";
+
+		}
+		catch(Exception e)
+		{
+			System.out.println("금지어 db 오류" + e);
+		}
+		try
+		{
 			con.close();
 		}catch(Exception e)
+		{}
+		return result;
+	}
+	
+	public String removeword(String name,String removeword)
+	{
+		String result = "";
+		connectDatabase();
+		sql = "select * from chatinfo where npc = ?";
+		try 
 		{
-			e.printStackTrace();
-			System.out.println("array 오류" + e);
+			pstmt26 = con.prepareStatement(sql);
+			pstmt26.setString(1, name);
+			rs = pstmt26.executeQuery();
+			if(rs.next())
+			{
+				sql = " delete wordlist where 금지어 = ?";
+				pstmt28 = con.prepareStatement(sql);
+				pstmt28.setString(1, removeword);
+				pstmt28.executeUpdate();
+				
+				result =  "금지어가 제거되었습니다.";
+			}
+			else
+			{
+				result =   "관리자 권한입니다. ";
+			}
+		}
+		catch(Exception e)
+		{
+			System.out.println("금지어 db 오류" + e);
+		}
+		try
+		{
+			con.close();
+		}catch(Exception e)
+		{}
+		return result;
+	}
+		
+	
+	public ArrayList<String>  wordlist() 
+	{
+		ArrayList<String> arr = new ArrayList<>();
+		connectDatabase();
+		sql = "select * from wordlist";
+		try {
+			pstmt29 = con.prepareStatement(sql);
+			rs = pstmt29.executeQuery();
+			
+			while(rs.next())
+			{
+				arr.add(rs.getString(1));
+			}
+				
+		}catch(Exception e)
+		{
+			System.out.println("금지어 리스트 오류" + e);
+			
 		}
 		return arr;
 	}
+	
+	public String addnotice(String msg)
+	{
+		String result = "";
+		connectDatabase();
+		sql = "insert into notice values(?)";
+		try 
+		{
+			pstmt30= con.prepareStatement(sql);
+			pstmt30.setString(1, msg);
+			pstmt30.executeUpdate();
+			result = "공지추가";
+			
+		}catch(SQLIntegrityConstraintViolationException e)
+		{
+			result = "이미 등록된 금지어입니다. ";
+
+		}
+		catch(Exception e)
+		{
+			System.out.println("공지추가 오류" + e);
+		}
+		return result;
+	}
+	
+	public ArrayList<String>  noticelist() 
+	{
+		ArrayList<String> arr = new ArrayList<>();
+		connectDatabase();
+		sql = "select * from notice";
+		try {
+			pstmt30 = con.prepareStatement(sql);
+			rs = pstmt30.executeQuery();
+			
+			while(rs.next())
+			{
+				arr.add(rs.getString(1));
+			}
+				
+		}catch(Exception e)
+		{
+			System.out.println("공지사항 리스트 오류" + e);
+			
+		}
+		return arr;
+	}
+	
+	
 	public void connectDatabase()
 	{
 		try {
@@ -625,6 +761,8 @@ public class ProjectChat
 		}
 	
 	}
+
+	
 
 
 	
