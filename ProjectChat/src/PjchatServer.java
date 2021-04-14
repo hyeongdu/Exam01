@@ -294,6 +294,12 @@ public class PjchatServer
 									String result = pjsql.bomb(stz3);
 								
 								}
+								
+								else if(stz.equals("/방장위임"))
+								{
+									String stz2 = st.nextToken();
+									out.println(pjsql.change(name, stz2));
+								}
 								else if(stz.equals("/금지어추가"))
 								{
 									String stz2 = st.nextToken();
@@ -312,6 +318,11 @@ public class PjchatServer
 								{
 									for(String e : list1)
 										out.println(e);
+								}
+								else if(stz.equals("/방리스트"))
+								{
+									Map<String,String> map = pjsql.roomlist();
+									out.println(map.values());
 								}
 								else 
 								{

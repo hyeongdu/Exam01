@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 public class ProjectChat
@@ -68,6 +69,12 @@ public class ProjectChat
 	PreparedStatement pstmt29= null;
 	PreparedStatement pstmt30= null;
 	PreparedStatement pstmt31= null;
+	PreparedStatement pstmt32= null;
+	PreparedStatement pstmt33= null;
+	PreparedStatement pstmt34= null;
+	PreparedStatement pstmt35= null;
+	PreparedStatement pstmt36= null;
+	PreparedStatement pstmt37= null;
 	ResultSet rs ;
 	int updateCount ;
 	String sql = null;
@@ -481,7 +488,7 @@ public class ProjectChat
 			pstmt12.setString(2, name);
 			pstmt12.executeUpdate();
 			
-			sql = "select * from rlist where super = ?";
+			sql = "select name from rlist where super = ?";
 			pstmt20 = con.prepareStatement(sql);
 			pstmt20.setString(1, name);
 			rs = pstmt20.executeQuery();
@@ -491,13 +498,19 @@ public class ProjectChat
 			
 			if(rs.next())
 			{
-				String result = rs.getString(name);
+				String result = rs.getString(1);
 				sql = "update rlist set super =  "
-						+ " (select name from room1 where roomname = '호호호' and rownum = 1) where name = '호호호'";
+						+ " (select name from room1 where roomname = ? and rownum = 1) where name = ? ";
 				pstmt21 = con.prepareStatement(sql);
-//				pstmt21.setString(1, "호호");
-//				pstmt21.setString(2, "호호");
+				pstmt21.setString(1, result);
+				pstmt21.setString(2, result);
 				pstmt21.executeUpdate();
+				
+				sql = "update room1 set super = '방장' where roomname =  ? and rownum =1";
+				pstmt31 = con.prepareStatement(sql);
+				pstmt31.setString(1, result);
+				pstmt31.executeUpdate();
+				
 			}
 		}catch(Exception e )
 		{
@@ -540,7 +553,7 @@ public class ProjectChat
 	}
 	public String bomb(String roomname)
 	{
-		String result = "1111";
+		
 		connectDatabase();
 		sql = "delete rlist where name = ?";
 		try
@@ -589,6 +602,55 @@ public class ProjectChat
 		}catch(Exception e)
 		{
 			System.out.println("귓속말 db 오류" + e);
+		}
+		try
+		{
+			con.close();
+		}catch(Exception e)
+		{}
+		return result;
+		
+		
+	}
+	
+	public String change(String name,String newname)
+	{
+		String result = "1111";
+		connectDatabase();
+		sql = "select * from rlist where super = ? ";
+		try 
+		{
+			pstmt33 = con.prepareStatement(sql);
+			pstmt33.setString(1, name);
+			rs = pstmt33.executeQuery();
+			if(rs.next())
+			{
+				sql = " update rlist set super= ? where super = ? ";
+				pstmt34 = con.prepareStatement(sql);
+				pstmt34.setString(1, newname);
+				pstmt34.setString(2, name);
+				pstmt34.executeUpdate();
+				
+				sql = " update room1 set super = '방장' where name = ?";
+				pstmt34 = con.prepareStatement(sql);
+				pstmt34.setString(1, newname);
+				pstmt34.executeUpdate();
+				
+				sql = "update room1 set super = '' where name = ?";
+				pstmt35 = con.prepareStatement(sql);
+				pstmt35.setString(1, name);
+				pstmt35.executeUpdate();
+				
+				
+				result =  "방장위임";
+			}
+			else
+			{
+				result =   "위임 권한이 없습니다.";
+			}
+		}catch(Exception e)
+		{
+			System.out.println("방장위임 오류" + e);
 		}
 		try
 		{
@@ -715,7 +777,7 @@ public class ProjectChat
 			
 		}catch(SQLIntegrityConstraintViolationException e)
 		{
-			result = "이미 등록된 금지어입니다. ";
+			result = "이미 등록된 공지입니다. ";
 
 		}
 		catch(Exception e)
@@ -737,6 +799,28 @@ public class ProjectChat
 			while(rs.next())
 			{
 				arr.add(rs.getString(1));
+			}
+				
+		}catch(Exception e)
+		{
+			System.out.println("공지사항 리스트 오류" + e);
+			
+		}
+		return arr;
+	}
+	
+	public Map<String,String>  roomlist() 
+	{
+		Map<String,String> arr = new HashMap<>();
+		connectDatabase();
+		sql = "select * from rlist";
+		try {
+			pstmt36 = con.prepareStatement(sql);
+			rs = pstmt36.executeQuery();
+			
+			while(rs.next())
+			{
+				arr.put(rs.getString(1),rs.getString(2));
 			}
 				
 		}catch(Exception e)
